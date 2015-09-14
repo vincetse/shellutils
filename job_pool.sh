@@ -1,31 +1,8 @@
-#!/bin/bash
-# Job pooling for bash shell scripts
-# This script provides a job pooling functionality where you can keep up to n
-# processes/functions running in parallel so that you don't saturate a system
-# with concurrent processes.
-#
-# Got inspiration from http://stackoverflow.com/questions/6441509/how-to-write-a-process-pool-bash-shell
-#
+#########################################
+# Job Pool
 # Copyright (c) 2012 Vince Tse
-# 
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-# 
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-# 
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE.
-
+# with changes by Geoff Clements
+#########################################
 # end-of-jobs marker
 job_pool_end_of_jobs="JOBPOOL_END_OF_JOBS"
 
@@ -87,24 +64,28 @@ function _job_pool_worker()
     local id=$1
     local job_queue=$2
     local result_log=$3
-    local line=
+    local cmd=
+    local args=
 
     exec 7<> ${job_queue}
-    while [[ "${line}" != "${job_pool_end_of_jobs}" && -e "${job_queue}" ]]; do
+    while [[ "${cmd}" != "${job_pool_end_of_jobs}" && -e "${job_queue}" ]]; do
         # workers block on the exclusive lock to read the job queue
         flock --exclusive 7
-        read line <${job_queue}
+        IFS=$'\v'
+        read cmd args <${job_queue}
+        set -- ${args}
+        unset IFS
         flock --unlock 7
         # the worker should exit if it sees the end-of-job marker or run the
         # job otherwise and save its exit code to the result log.
-        if [[ "${line}" == "${job_pool_end_of_jobs}" ]]; then
+        if [[ "${cmd}" == "${job_pool_end_of_jobs}" ]]; then
             # write it one more time for the next sibling so that everyone
             # will know we are exiting.
-            echo "${line}" >&7
+            echo "${cmd}" >&7
         else
-            _job_pool_echo "### _job_pool_worker-${id}: ${line}"
+            _job_pool_echo "### _job_pool_worker-${id}: ${cmd}"
             # run the job
-            { ${line} ; }
+            { ${cmd} "$@" ; }
             # now check the exit code and prepend "ERROR" to the result log entry
             # which we will use to count errors and then strip out later.
             local result=$?
@@ -116,10 +97,10 @@ function _job_pool_worker()
             # don't trample over each other.
             exec 8<> ${result_log}
             flock --exclusive 8
-            echo "${status}job_pool: exited ${result}: ${line}" >> ${result_log}
+            _job_pool_echo "${status}job_pool: exited ${result}: ${cmd} $@" >> ${result_log}
             flock --unlock 8
             exec 8>&-
-            _job_pool_echo "### _job_pool_worker-${id}: exited ${result}: ${line}"
+            _job_pool_echo "### _job_pool_worker-${id}: exited ${result}: ${cmd} $@"
         fi
     done
     exec 7>&-
@@ -185,7 +166,8 @@ function job_pool_run()
     if [[ "${job_pool_pool_size}" == "-1" ]]; then
         job_pool_init
     fi
-    echo $@ >> ${job_pool_job_queue}
+    printf "%s\v" "$@" >> ${job_pool_job_queue}
+    echo >> ${job_pool_job_queue}
 }
 
 # \brief waits for all queued up jobs to complete before starting new jobs
@@ -196,3 +178,6 @@ function job_pool_wait()
     _job_pool_stop_workers
     _job_pool_start_workers ${job_pool_job_queue} ${job_pool_result_log}
 }
+#########################################
+# End of Job Pool
+#########################################
