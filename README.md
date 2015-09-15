@@ -112,7 +112,7 @@ Because naud can use a lot of temporary space this option allows you to specify 
 temporary directory to use. Naud will create temporary directories under DIRECTORY for 
 its use. The default for this option is the value of the environmental variable TMP.
 
-Pass-through Options
+### Pass-through Options
 The following options are passed through to normalize-audio:
 - -a AMP
 - -g ADJ
