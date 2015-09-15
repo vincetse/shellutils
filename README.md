@@ -64,3 +64,9 @@ The interface consists of four public functions and one variable that reports ho
     job_pool_nerrors=0
 
 This was inspired by [a discussion on StackOverflow](http://stackoverflow.com/questions/6441509/how-to-write-a-process-pool-bash-shell).
+
+## `genpass.sh`
+`genpass.sh` is a random password generator, it will produce a random password of the desired length which is suitable
+for manual entering via the keyboard.
+- Requires uuencode to be in the search path
+- Usage: genpass.sh \<length\> (default: 8)
