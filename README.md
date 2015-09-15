@@ -96,6 +96,7 @@ value later on after which the new value is used for all later files.
 
 ### OPTIONS
 -o TARGET
+
 TARGET is one of "same", "ogg", "vorbis", "mp3", or "flac". "vorbis" is a synonym for 
 "ogg". The default for this option is "same". When set to "same" this option causes 
 naud to re-encode the files using their original encoding type and will overwrite the 
@@ -106,6 +107,7 @@ only mp3 files although, generally, it is not a good idea to encode mp3 to ogg o
 vice-versa. There is little point in re-encoding both mp3 and ogg files to flac.
 
 -t DIRECTORY
+
 Because naud can use a lot of temporary space this option allows you to specify the 
 temporary directory to use. Naud will create temporary directories under DIRECTORY for 
 its use. The default for this option is the value of the environmental variable TMP.
