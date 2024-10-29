@@ -45,6 +45,9 @@ job_pool_pool_size=-1
 # \brief variable to check for number of non-zero exits
 job_pool_nerrors=0
 
+# function that will be called at the end of each job. By default, no function is called.
+job_pool_injected_function=""
+
 ################################################################################
 # private functions
 ################################################################################
@@ -124,6 +127,11 @@ function _job_pool_worker()
             flock --unlock 8
             exec 8>&-
             _job_pool_echo "### _job_pool_worker-${id}: exited ${result}: ${cmd} $@"
+
+            # run the injected function if it was provided
+            if [[ "${job_pool_injected_function}" != "" ]]; then
+                "${job_pool_injected_function}"
+            fi
         fi
     done
     exec 7>&-
@@ -157,12 +165,14 @@ function _job_pool_start_workers()
 # \brief initializes the job pool
 # \param[in] pool_size  number of parallel jobs allowed
 # \param[in] echo_command  1 to turn on echo, 0 to turn off
+# \param[in] job_pool_injected_function  (optional) a function that will be called at the end of each job
 function job_pool_init()
 {
     local pool_size=$1
     local echo_command=$2
 
     # set the global attibutes
+    job_pool_injected_function=$3
     job_pool_pool_size=${pool_size:=1}
     job_pool_echo_command=${echo_command:=0}
 
