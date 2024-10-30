@@ -48,10 +48,22 @@ function sleep_n_echo()
     echo "$2"
 }
 
-# kill all workers if the local variable "result" from _job_pool_worker
-# indicates that the job failed
-function kill_jobs()
+# Injected function that will be called before each job
+# 
+# Print which worker is starting which job
+function print_starting_job()
 {
+    echo " # _job_pool_worker-${id}: Starting job: ${cmd} $(echo "${args[@]}" | xargs | tr '\v' ' ')"
+}
+
+# Injected function that will be called afetr each job
+# 
+# Kill all workers if the local variable "result" from _job_pool_worker
+# indicates that the job failed
+function kill_workers()
+{
+    echo " # _job_pool_worker-${id}: Finished job: ${cmd} $(echo "${args[@]}" | xargs | tr '\v' ' ')"
+
     # result is undefined in this script, but will be defined when
     # the function is injected in _job_pool_worker
     if [[ "${result}" != "0" ]]; then
@@ -65,16 +77,16 @@ function kill_jobs()
     fi
 }
 
-# allow 3 parallel jobs, and kill all jobs at the first fail using "kill_jobs" function
-job_pool_init 3 1 kill_jobs
+# allow 3 parallel jobs, and kill all jobs at the first fail using "kill_workers" function
+job_pool_init 3 0 print_starting_job kill_workers
 
 # simulate 3 jobs, where one fails before the others are finished, and interrupts the others
 job_pool_run sleep_n_echo 3 a   # job 1
 job_pool_run /bin/false         # job 2
 job_pool_run sleep_n_echo 3 b   # job 3
 
-# the job 2 will kill all other running workers, using the function "kill_jobs", 
-# that is ran after processing each job
+# the job 2 will kill all other running workers, using the function "kill_workers"
+# (that is ran after processing each job)
 
 job_pool_shutdown
 
