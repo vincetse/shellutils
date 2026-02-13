@@ -45,6 +45,12 @@ job_pool_pool_size=-1
 # \brief variable to check for number of non-zero exits
 job_pool_nerrors=0
 
+# function that will be called before each job. By default, no function is called.
+job_pool_function_pre_job=""
+
+# function that will be called after each job. By default, no function is called.
+job_pool_function_post_job=""
+
 ################################################################################
 # private functions
 ################################################################################
@@ -106,6 +112,11 @@ function _job_pool_worker()
             # will know we are exiting.
             echo "${cmd}" >&7
         else
+            # run the pre job injected function if it was provided
+            if [[ "${job_pool_function_pre_job}" != "" ]]; then
+                "${job_pool_function_pre_job}"
+            fi
+
             _job_pool_echo "### _job_pool_worker-${id}: ${cmd}"
             # run the job
             { ${cmd} "$@" ; }
@@ -124,6 +135,11 @@ function _job_pool_worker()
             flock --unlock 8
             exec 8>&-
             _job_pool_echo "### _job_pool_worker-${id}: exited ${result}: ${cmd} $@"
+
+            # run the post job injected function if it was provided
+            if [[ "${job_pool_function_post_job}" != "" ]]; then
+                "${job_pool_function_post_job}"
+            fi
         fi
     done
     exec 7>&-
@@ -157,12 +173,18 @@ function _job_pool_start_workers()
 # \brief initializes the job pool
 # \param[in] pool_size  number of parallel jobs allowed
 # \param[in] echo_command  1 to turn on echo, 0 to turn off
+# \param[in] job_pool_function_pre_job  (optional) a function that will be called before each job
+# \param[in] job_pool_function_post_job  (optional) a function that will be called after each job. 
+# 
+# To only have a post job function, the given parameter for the pre job function should be: "".
 function job_pool_init()
 {
     local pool_size=$1
     local echo_command=$2
 
     # set the global attibutes
+    job_pool_function_pre_job=$3
+    job_pool_function_post_job=$4
     job_pool_pool_size=${pool_size:=1}
     job_pool_echo_command=${echo_command:=0}
 

@@ -47,6 +47,10 @@ The interface consists of four public functions and one variable that reports ho
     # \brief initializes the job pool
     # \param[in] pool_size  number of parallel jobs allowed
     # \param[in] echo_command  1 to turn on echo, 0 to turn off
+    # \param[in] job_pool_function_pre_job  (optional) a function that will be called before each job
+    # \param[in] job_pool_function_post_job  (optional) a function that will be called after each job. 
+    # 
+    # To only have a post job function, the given parameter for the pre job function should be: "".
     function job_pool_init()
     
     # \brief waits for all queued up jobs to complete and shuts down the job pool
@@ -64,6 +68,8 @@ The interface consists of four public functions and one variable that reports ho
     job_pool_nerrors=0
 
 This was inspired by [a discussion on StackOverflow](http://stackoverflow.com/questions/6441509/how-to-write-a-process-pool-bash-shell).
+
+For more information on the parameters "job_pool_function_pre_job" and "job_pool_function_post_job" of the "job_pool_init" function, check the sample program "job_pool_sample_injected_functions.sh".
 
 ## `genpass.sh`
 `genpass.sh` is a random password generator, it will produce a random password of the desired length which is suitable
